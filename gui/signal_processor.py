@@ -218,7 +218,10 @@ class VitalSignsProcessor:
                     else:
                         self.subject_state = "Tracking Vital Signs"
                         measured_rpm = peak_resp_f * 60.0
-                        self.current_rpm = 0.80 * self.current_rpm + 0.20 * measured_rpm
+                        if self.current_rpm < 2.0:
+                            self.current_rpm = measured_rpm
+                        else:
+                            self.current_rpm = 0.80 * self.current_rpm + 0.20 * measured_rpm
         except Exception:
             pass
 
@@ -245,19 +248,23 @@ class VitalSignsProcessor:
                     ratio = peak_p / total_p  # Spectral purity
 
                     # Signal Quality Index (SQI) Calculation (>90% when sharp peak exists)
-                    if ratio > 0.35 and mean_recent_rssi > -75:
-                        raw_sqi = 85.0 + min(13.0, (ratio - 0.35) * 35.0)
-                    elif ratio > 0.20:
-                        raw_sqi = 65.0 + (ratio - 0.20) * 100.0
+                    if ratio > 0.32 and mean_recent_rssi > -88:
+                        raw_sqi = 85.0 + min(13.0, (ratio - 0.32) * 35.0)
+                    elif ratio > 0.18:
+                        raw_sqi = 65.0 + (ratio - 0.18) * 100.0
                     else:
                         raw_sqi = max(15.0, ratio * 250.0)
 
                     # Smooth SQI towards target
-                    self.current_sqi = 0.85 * self.current_sqi + 0.15 * raw_sqi
+                    self.current_sqi = 0.80 * self.current_sqi + 0.20 * raw_sqi
 
                     # Update BPM if signal is clear and physiological
-                    if self.current_sqi >= 40.0 and 55.0 <= measured_bpm <= 120.0:
-                        self.current_bpm = 0.82 * self.current_bpm + 0.18 * measured_bpm
+                    if self.current_sqi >= 30.0 and 50.0 <= measured_bpm <= 125.0:
+                        if not self.is_calibrated or self.current_bpm < 40.0:
+                            self.current_bpm = measured_bpm
+                            self.is_calibrated = True
+                        else:
+                            self.current_bpm = 0.75 * self.current_bpm + 0.25 * measured_bpm
         except Exception:
             pass
 
