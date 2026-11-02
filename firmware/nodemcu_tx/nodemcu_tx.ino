@@ -2,12 +2,11 @@
  * WiFi Vital Signs Radar - High-Power NodeMCU (ESP8266) Transmitter (TX)
  * 
  * Target: NodeMCU 1.0 (ESP-12E / ESP8266)
- * Uses ESP-NOW broadcast + UDP to emit high-power (+20.5 dBm) 802.11 frames
- * on Channel 11 at 80 Hz. Connectionless: Blasts packets immediately on power-up!
+ * Uses high-power (+20.5 dBm) 802.11 ESP-NOW frames on Channel 11 at 80 Hz.
+ * SoftAP enabled to provide stable lwIP memory without buffer exhaustion.
  */
 
 #include <ESP8266WiFi.h>
-#include <WiFiUdp.h>
 extern "C" {
   #include <espnow.h>
 }
@@ -35,10 +34,6 @@ uint32_t lastReportTime = 0;
 uint32_t lastLedToggle = 0;
 bool ledState = false;
 
-WiFiUDP udp;
-const IPAddress broadcastIP(255, 255, 255, 255);
-const uint16_t udpPort = 8888;
-
 void setup() {
     Serial.begin(115200);
     delay(300);
@@ -49,14 +44,14 @@ void setup() {
     Serial.println("\n=================================================");
     Serial.println("  WiFi Vital Signs Radar - NodeMCU (ESP8266) TX");
     Serial.println("  Carrier: 2.4 GHz | Channel: 11 | Power: +20.5 dBm MAX");
-    Serial.println("  Protocol: ESP-NOW Broadcast @ 80 Hz");
+    Serial.println("  Protocol: ESP-NOW Broadcast @ 80 Hz (Continuous)");
     Serial.println("=================================================");
 
-    // 1. Set WiFi mode to Station mode (standard for ESP-NOW) on Channel 11
-    WiFi.mode(WIFI_STA);
-    WiFi.disconnect();
+    // 1. Enable SoftAP + Station mode so lwIP stack has stable buffers
+    WiFi.mode(WIFI_AP_STA);
+    WiFi.softAP("NODEMCU_RADAR_TX", "12345678", WIFI_CHANNEL, 0, 4);
     
-    // Set Maximum RF output power (+20.5 dBm) to overpower room router noise
+    // Set Maximum RF output power (+20.5 dBm)
     WiFi.setOutputPower(20.5);
 
     // Lock to Channel 11
@@ -70,9 +65,6 @@ void setup() {
         esp_now_set_self_role(ESP_NOW_ROLE_CONTROLLER);
         esp_now_add_peer(broadcastMac, ESP_NOW_ROLE_SLAVE, WIFI_CHANNEL, NULL, 0);
     }
-
-    // 3. Initialize UDP as dual-beacon
-    udp.begin(udpPort);
 
     // Fill packet
     txPacket.magic = 0x55AA;
@@ -94,13 +86,8 @@ void loop() {
         txPacket.seq = ++packetCount;
         txPacket.timestamp = nowUs;
 
-        // Blast ESP-NOW packet directly onto Channel 11
+        // Blast raw 802.11 ESP-NOW frame directly onto Channel 11
         esp_now_send(broadcastMac, (uint8_t *)&txPacket, sizeof(VitalRadarPacket));
-
-        // Also blast UDP broadcast
-        udp.beginPacket(broadcastIP, udpPort);
-        udp.write((const uint8_t *)&txPacket, sizeof(VitalRadarPacket));
-        udp.endPacket();
     }
 
     // Toggle onboard LED at 2 Hz to show active transmission
