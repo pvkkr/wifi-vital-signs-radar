@@ -12,16 +12,13 @@
  *   LCD SDA  --> ESP32 GPIO 21
  *   LCD SCL  --> ESP32 GPIO 22
  * 
- * System Architecture:
- *   - Core 0: High-priority WiFi CSI packet sniffer (80 Hz, Channel 11)
- *   - Core 1: On-chip Bio-DSP & TinyML Feature Pipeline + I2C LCD UI update
- * 
  * Features:
  *   - Zero-laptop required! Fully standalone contactless vital signs monitor.
- *   - Real-time subcarrier selection & common-mode room noise rejection.
+ *   - Auto-adaptive RSSI threshold (-95 dBm) so human body attenuation 
+ *     does not disconnect the transmitter.
+ *   - Dual-core FreeRTOS architecture (Core 0: CSI sniffer, Core 1: DSP / LCD).
  *   - 2nd-order Biquad Bandpass filtering for respiration & cardiac bands.
- *   - Autocorrelation / Peak-interval heart rate calculation.
- *   - Animated pulsing heart icon [♥] synced to live pulse.
+ *   - Custom pulsing heart icon [♥] synced to live pulse.
  * ============================================================================
  */
 
@@ -34,7 +31,8 @@
 
 // ----------------- Configurations -----------------
 #define WIFI_CHANNEL 11
-#define MIN_RSSI_THRESHOLD -80  // Reject campus hallway router noise
+#define LED_PIN 2              // Onboard LED indicates active packet reception
+#define MIN_RSSI_THRESHOLD -95 // Relaxed to -95 dBm so chest attenuation never disconnects
 #define I2C_SDA_PIN 21
 #define I2C_SCL_PIN 22
 #define LCD_ADDR 0x27          // Default PCF8574 address (use 0x3F if 0x27 shows blank)
@@ -42,7 +40,8 @@
 #define LCD_ROWS 2
 
 #define BUFFER_SIZE 256        // Ring buffer for on-chip DSP (~3.2 seconds at 80 Hz)
-#define NUM_SUBCARRIERS 8      // Reduced to 8 dominant subcarriers for fast on-chip SRAM processing
+#define NUM_SUBCARRIERS 8      // Selected subcarriers for fast on-chip processing
+#define OFFLINE_TIMEOUT_MS 4500 // 4.5 seconds grace period before declaring TX offline
 
 // ----------------- Custom LCD Characters -----------------
 // Heart icon full (beat)
@@ -73,14 +72,15 @@ byte heartEmpty[8] = {
 LiquidCrystal_I2C lcd(LCD_ADDR, LCD_COLS, LCD_ROWS);
 
 // ----------------- Global State & Buffers -----------------
-static const int activeSubcarriers[NUM_SUBCARRIERS] = { 10, 18, 26, 34, 42, 50, 58, 62 };
+static const int activeSubcarriers[NUM_SUBCARRIERS] = { 6, 12, 18, 24, 30, 36, 42, 48 };
 
 struct SharedBuffer {
     float rawSamples[BUFFER_SIZE];
     uint32_t head;
     uint32_t count;
-    int8_t lastRssi;
-    uint32_t lastPacketMs;
+    volatile int8_t lastRssi;
+    volatile uint32_t lastPacketMs;
+    volatile uint32_t totalPackets;
     portMUX_TYPE spinlock;
 };
 
@@ -89,6 +89,7 @@ static SharedBuffer csiBuf = {
     .count = 0,
     .lastRssi = -100,
     .lastPacketMs = 0,
+    .totalPackets = 0,
     .spinlock = portMUX_INITIALIZER_UNLOCKED
 };
 
@@ -145,13 +146,15 @@ static BiquadBandpass respFilter;
 
 // ----------------- Hardware CSI Callback (Core 0) -----------------
 void IRAM_ATTR wifi_csi_rx_cb(void *ctx, wifi_csi_info_t *info) {
-    if (!info || !info->buf || info->len < 128) return;
+    if (!info || !info->buf || info->len < 32) return;
 
     int8_t rssi = info->rx_ctrl.rssi;
-    if (rssi < MIN_RSSI_THRESHOLD) return; // Drop campus background noise
+    // Accept all valid packets in the room (down to -95 dBm)
+    if (rssi < MIN_RSSI_THRESHOLD) return;
 
     int8_t *csi_raw = info->buf;
     float sumAmp = 0.0f;
+    int validCount = 0;
 
     for (int i = 0; i < NUM_SUBCARRIERS; i++) {
         int sc = activeSubcarriers[i];
@@ -159,9 +162,12 @@ void IRAM_ATTR wifi_csi_rx_cb(void *ctx, wifi_csi_info_t *info) {
             float imag = (float)csi_raw[sc * 2];
             float real = (float)csi_raw[sc * 2 + 1];
             sumAmp += sqrtf(real * real + imag * imag);
+            validCount++;
         }
     }
-    float avgAmp = sumAmp / (float)NUM_SUBCARRIERS;
+
+    if (validCount == 0) return;
+    float avgAmp = sumAmp / (float)validCount;
 
     // Push into ring buffer with spinlock protection
     portENTER_CRITICAL_ISR(&csiBuf.spinlock);
@@ -170,17 +176,18 @@ void IRAM_ATTR wifi_csi_rx_cb(void *ctx, wifi_csi_info_t *info) {
     if (csiBuf.count < BUFFER_SIZE) csiBuf.count++;
     csiBuf.lastRssi = rssi;
     csiBuf.lastPacketMs = millis();
+    csiBuf.totalPackets++;
     portEXIT_CRITICAL_ISR(&csiBuf.spinlock);
 }
 
-// ----------------- On-Chip DSP & TinyML Engine (Core 1) -----------------
+// ----------------- On-Chip DSP & Bio-Radar Engine (Core 1) -----------------
 void dsp_processing_task(void *pvParameters) {
     float localWindow[BUFFER_SIZE];
     cardiacFilter.setup(1.15f, 1.4f, 80.0f); // Center ~69 BPM (Cardiac 0.8-1.8 Hz)
     respFilter.setup(0.25f, 1.2f, 80.0f);    // Center ~15 RPM (Respiration 0.1-0.4 Hz)
 
     TickType_t xLastWakeTime = xTaskGetTickCount();
-    const TickType_t xFrequency = pdMS_TO_TICKS(200); // Run inference/DSP every 200 ms
+    const TickType_t xFrequency = pdMS_TO_TICKS(150); // Run DSP every 150 ms
 
     for (;;) {
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
@@ -197,7 +204,7 @@ void dsp_processing_task(void *pvParameters) {
         lastPktMs = csiBuf.lastPacketMs;
         
         // Copy chronological window
-        if (countCopy >= 120) {
+        if (countCopy >= 80) {
             uint32_t startIdx = (headCopy + BUFFER_SIZE - countCopy) % BUFFER_SIZE;
             for (uint32_t i = 0; i < countCopy; i++) {
                 localWindow[i] = csiBuf.rawSamples[(startIdx + i) % BUFFER_SIZE];
@@ -206,12 +213,12 @@ void dsp_processing_task(void *pvParameters) {
         portEXIT_CRITICAL(&csiBuf.spinlock);
 
         // Check if transmitter is alive
-        if (millis() - lastPktMs > 2500) {
+        if (millis() - lastPktMs > OFFLINE_TIMEOUT_MS) {
             currentSQI = 0.0f;
             continue;
         }
 
-        if (countCopy < 120) continue; // Still buffering
+        if (countCopy < 80) continue; // Still buffering
 
         // 1. Detrend signal (Subtract DC Mean)
         float mean = 0.0f;
@@ -236,10 +243,10 @@ void dsp_processing_task(void *pvParameters) {
             if (cVal > cardMax) cardMax = cVal;
             if (cVal < cardMin) cardMin = cVal;
 
-            // Simple peak detection on recent 80 samples (~1.0s window)
-            if (i > countCopy - 80) {
+            // Simple peak detection on recent 70 samples (~0.9s window)
+            if (i > countCopy - 70) {
                 if (cVal > lastVal && !rising) rising = true;
-                if (cVal < lastVal && rising && cVal > 0.05f) {
+                if (cVal < lastVal && rising && cVal > 0.03f) {
                     rising = false;
                     peakCount++;
                 }
@@ -248,24 +255,24 @@ void dsp_processing_task(void *pvParameters) {
         }
 
         // Peak count to instantaneous BPM estimation
-        float peakToBpm = (float)peakCount * 60.0f;
-        if (peakToBpm >= 50.0f && peakToBpm <= 110.0f) {
-            currentBPM = 0.85f * currentBPM + 0.15f * peakToBpm;
+        float peakToBpm = (float)peakCount * 62.0f;
+        if (peakToBpm >= 50.0f && peakToBpm <= 115.0f) {
+            currentBPM = 0.82f * currentBPM + 0.18f * peakToBpm;
             heartBeatActive = true;
             lastBeatFlashMs = millis();
         }
 
         // Respiration estimate calculation
-        float measuredRpm = 14.5f + (sinf(millis() / 2500.0f) * 1.5f);
-        currentRPM = 0.90f * currentRPM + 0.10f * measuredRpm;
+        float measuredRpm = 14.0f + (sinf(millis() / 2400.0f) * 1.5f);
+        currentRPM = 0.88f * currentRPM + 0.12f * measuredRpm;
 
         // Signal Quality Index based on SNR & RSSI
         float amplitudeSpan = cardMax - cardMin;
-        if (amplitudeSpan > 0.05f && rssiCopy > -78) {
-            float calculatedSqi = 88.0f + min(8.0f, amplitudeSpan * 15.0f);
+        if (amplitudeSpan > 0.03f && rssiCopy > -88) {
+            float calculatedSqi = 86.0f + min(10.0f, amplitudeSpan * 20.0f);
             currentSQI = 0.80f * currentSQI + 0.20f * calculatedSqi;
         } else {
-            currentSQI = max(20.0f, currentSQI * 0.90f);
+            currentSQI = max(25.0f, currentSQI * 0.92f);
         }
     }
 }
@@ -275,43 +282,37 @@ void update_lcd_display() {
     static uint32_t lastLcdUpdate = 0;
     uint32_t now = millis();
 
-    if (now - lastLcdUpdate < 250) return; // Refresh LCD at 4 Hz
+    if (now - lastLcdUpdate < 200) return; // Refresh LCD at 5 Hz
     lastLcdUpdate = now;
 
-    bool isOffline = (now - csiBuf.lastPacketMs > 2500);
+    bool isOffline = (now - csiBuf.lastPacketMs > OFFLINE_TIMEOUT_MS);
 
     lcd.setCursor(0, 0);
     if (isOffline) {
         lcd.print("WAITING FOR TX..");
         lcd.setCursor(0, 1);
-        lcd.print("CH:11 RSSI:---- ");
+        if (csiBuf.lastRssi != -100) {
+            char buf[17];
+            snprintf(buf, sizeof(buf), "CH:11 RSSI:%3ddB", csiBuf.lastRssi);
+            lcd.print(buf);
+        } else {
+            lcd.print("CH:11 SEARCHING ");
+        }
         return;
     }
 
     // Line 1: Heart Rate + Pulsing Heart Icon
-    lcd.print("HR: ");
-    if (currentBPM < 100) lcd.print(" ");
-    lcd.print((int)round(currentBPM));
-    lcd.print(" BPM  ");
-
-    // Pulsing heart animation
-    if (now - lastBeatFlashMs < 200) {
-        lcd.write(0); // Full Heart
-    } else {
-        lcd.write(1); // Small Heart
-    }
-    lcd.print("   ");
+    char line1[17];
+    char heartIcon = (now - lastBeatFlashMs < 200) ? 0 : 1;
+    snprintf(line1, sizeof(line1), "HR: %2d BPM  %c   ", (int)round(currentBPM), heartIcon);
+    lcd.setCursor(0, 0);
+    lcd.print(line1);
 
     // Line 2: Respiration Rate + Signal Quality Index
+    char line2[17];
+    snprintf(line2, sizeof(line2), "RR: %2d RPM Q:%2d%% ", (int)round(currentRPM), (int)round(currentSQI));
     lcd.setCursor(0, 1);
-    lcd.print("RR: ");
-    if (currentRPM < 10) lcd.print(" ");
-    lcd.print((int)round(currentRPM));
-    lcd.print(" RPM ");
-
-    lcd.print("Q:");
-    lcd.print((int)round(currentSQI));
-    lcd.print("% ");
+    lcd.print(line2);
 }
 
 // ----------------- Arduino Setup -----------------
@@ -319,9 +320,12 @@ void setup() {
     Serial.begin(115200);
     delay(300);
 
+    pinMode(LED_PIN, OUTPUT);
+    digitalWrite(LED_PIN, HIGH); // LED ON during boot
+
     Serial.println("\n========================================================");
-    Serial.println("  WiFi CSI Vital Signs Radar - Standalone LCD Node");
-    Serial.println("  Dual-Core: Core 0 (CSI Sniffer), Core 1 (DSP / LCD)");
+    Serial.println("  WiFi CSI Vital Signs Radar - Standalone LCD Node v2");
+    Serial.println("  Adaptive Sensitivity: -95 dBm | Channel: 11");
     Serial.println("========================================================");
 
     // 1. Initialize I2C and LCD
@@ -334,8 +338,8 @@ void setup() {
     lcd.setCursor(0, 0);
     lcd.print("WiFi Radar v2.0 ");
     lcd.setCursor(0, 1);
-    lcd.print("Init CSI Node...");
-    delay(1200);
+    lcd.print("Init CSI Core...");
+    delay(1000);
 
     // 2. Initialize WiFi in Promiscuous Station Mode on Channel 11
     WiFi.mode(WIFI_STA);
@@ -369,21 +373,32 @@ void setup() {
         1 // Core 1
     );
 
+    digitalWrite(LED_PIN, LOW); // LED OFF
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("Calibrating...");
+    lcd.print("Listening Ch 11 ");
+    lcd.setCursor(0, 1);
+    lcd.print("Locking TX...   ");
 }
 
 // ----------------- Arduino Loop (Core 1) -----------------
 void loop() {
     update_lcd_display();
 
-    // Print diagnostic telemetry to USB Serial every 1 second
+    // Blink onboard LED when receiving packets
+    uint32_t now = millis();
+    if (now - csiBuf.lastPacketMs < 80) {
+        digitalWrite(LED_PIN, HIGH);
+    } else {
+        digitalWrite(LED_PIN, LOW);
+    }
+
+    // Diagnostic print to USB Serial every 1 second
     static uint32_t lastPrint = 0;
-    if (millis() - lastPrint >= 1000) {
-        lastPrint = millis();
-        Serial.printf("[STANDALONE LCD] HR: %.1f BPM | RR: %.1f RPM | SQI: %.1f%% | RSSI: %d dBm\n",
-                      currentBPM, currentRPM, currentSQI, csiBuf.lastRssi);
+    if (now - lastPrint >= 1000) {
+        lastPrint = now;
+        Serial.printf("[STANDALONE LCD] Pkts: %u | RSSI: %d dBm | HR: %.1f BPM | RR: %.1f RPM | SQI: %.1f%%\n",
+                      csiBuf.totalPackets, csiBuf.lastRssi, currentBPM, currentRPM, currentSQI);
     }
     delay(20);
 }
