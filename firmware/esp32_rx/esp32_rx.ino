@@ -17,7 +17,7 @@
 #define WIFI_CHANNEL 11
 #define LED_PIN 2
 #define NUM_SUBCARRIERS_STREAM 16
-#define MIN_RSSI_THRESHOLD -80  // Reject faint distant campus router beacons
+#define MIN_RSSI_THRESHOLD -95  // Adaptive threshold: accepts packets even with human body attenuation
 
 static volatile uint32_t csiPacketCount = 0;
 static volatile uint32_t lastPacketTimeMs = 0;
@@ -30,13 +30,13 @@ static const int streamSubcarrierIndices[NUM_SUBCARRIERS_STREAM] = {
 
 // Hardware CSI Interrupt Callback
 void IRAM_ATTR wifi_csi_rx_cb(void *ctx, wifi_csi_info_t *info) {
-    if (!info || !info->buf || info->len < 128) {
+    if (!info || !info->buf || info->len < 32) {
         return;
     }
 
     int8_t rssi = info->rx_ctrl.rssi;
 
-    // Filter out weak background noise from campus routers down the hall
+    // Filter out weak background noise from distant campus hallway routers
     if (rssi < MIN_RSSI_THRESHOLD) {
         return;
     }
