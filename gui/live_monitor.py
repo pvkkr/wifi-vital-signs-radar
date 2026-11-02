@@ -146,8 +146,8 @@ class VitalSignsRadarApp(QMainWindow):
         self.sim_timer = QTimer()
         self.sim_timer.timeout.connect(self._generate_sim_sample)
         
-        # Start in Demo Mode by default for instant feedback
-        self.mode_combo.setCurrentText("Demo (Simulated)")
+        # Start in Live Hardware Mode by default
+        self.mode_combo.setCurrentText("Live ESP32 Hardware")
         self._toggle_mode()
 
     def _init_ui(self):
@@ -324,6 +324,22 @@ class VitalSignsRadarApp(QMainWindow):
         for p in ports:
             self.port_combo.addItem(f"{p.device} - {p.description}")
 
+    def _clear_display(self):
+        """Reset HUD cards and plot curves to blank state."""
+        self.card_bpm.val_label.setText("-- BPM")
+        self.card_bpm.sub_label.setText("Status: Waiting for packets...")
+        self.card_rpm.val_label.setText("-- RPM")
+        self.card_rpm.sub_label.setText("Respiratory cycle: -- Hz")
+        self.card_sqi.val_label.setText("0 %")
+        self.card_sqi.sub_label.setText("Signal: Initializing...")
+        self.card_rf.val_label.setText("SC #--")
+        self.card_rf.sub_label.setText("RSSI: -- dBm | Total Pkts: 0")
+        self.curve_raw.setData([], [])
+        self.curve_resp.setData([], [])
+        self.curve_cardiac.setData([], [])
+        self.curve_fft_resp.setData([], [])
+        self.curve_fft_card.setData([], [])
+
     def _toggle_mode(self):
         is_demo = self.mode_combo.currentText().startswith("Demo")
         self.demo_label.setVisible(is_demo)
@@ -332,6 +348,11 @@ class VitalSignsRadarApp(QMainWindow):
         self.port_combo.setVisible(not is_demo)
         self.btn_refresh.setVisible(not is_demo)
         self.btn_connect.setVisible(not is_demo)
+
+        # Clear processor buffers and display so simulated data never lingers
+        self.processor.reset_buffer()
+        self.packet_counter = 0
+        self._clear_display()
 
         if is_demo:
             if self.worker:
@@ -343,7 +364,7 @@ class VitalSignsRadarApp(QMainWindow):
             self.status_lbl.setText("Running in Demo Simulation Mode.")
         else:
             self.sim_timer.stop()
-            self.status_lbl.setText("Select ESP32 Receiver Port and click Connect.")
+            self.status_lbl.setText("Ready. Select ESP32 Port and click 'Connect Hardware'.")
 
     def _change_demo_scenario(self):
         idx = self.demo_combo.currentIndex()
@@ -362,6 +383,12 @@ class VitalSignsRadarApp(QMainWindow):
                 QMessageBox.warning(self, "No Port", "Please select an active ESP32 COM port.")
                 return
             port = selected.split(' ')[0]
+            
+            # Reset buffer before starting live hardware stream
+            self.processor.reset_buffer()
+            self.packet_counter = 0
+            self._clear_display()
+
             self.worker = SerialWorker(port=port, baud=115200)
             self.worker.sample_received.connect(self._on_sample)
             self.worker.status_message.connect(self.status_lbl.setText)
@@ -374,6 +401,8 @@ class VitalSignsRadarApp(QMainWindow):
             # Disconnect
             self.worker.stop()
             self.worker = None
+            self.processor.reset_buffer()
+            self._clear_display()
             self.btn_connect.setText("Connect Hardware")
             self.btn_connect.setStyleSheet("background-color: #238636; color: white;")
             self.status_lbl.setText("Disconnected.")

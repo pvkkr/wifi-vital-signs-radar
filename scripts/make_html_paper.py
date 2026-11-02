@@ -8,7 +8,9 @@ import re
 
 def convert():
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    md_path = os.path.join(base_dir, "docs", "RESEARCH_PAPER_SUBMISSION.md")
+    md_path = os.path.join(base_dir, "docs", "RESEARCH_PAPER.md")
+    if not os.path.exists(md_path):
+        md_path = os.path.join(base_dir, "docs", "RESEARCH_PAPER_SUBMISSION.md")
     html_path = os.path.join(base_dir, "docs", "RESEARCH_PAPER_PRINTABLE.html")
 
     with open(md_path, "r", encoding="utf-8") as f:

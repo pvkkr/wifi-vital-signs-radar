@@ -31,18 +31,37 @@ class VitalSignsProcessor:
         self.resp_signal = np.array([])
         self.cardiac_signal = np.array([])
         
-        # Vital sign estimates
-        self.current_bpm = 72.0
-        self.current_rpm = 15.0
+        # Vital sign estimates (Initially 0 until hardware data is collected)
+        self.current_bpm = 0.0
+        self.current_rpm = 0.0
         self.current_sqi = 0.0
-        self.subject_state = "Calibrating..."
+        self.subject_state = "Waiting for Hardware..."
         self.selected_subcarrier_idx = 0
-        
+        self.is_calibrated = False
+
         # Spectrum data for plotting
         self.freqs_resp = np.array([])
         self.psd_resp = np.array([])
         self.freqs_cardiac = np.array([])
         self.psd_cardiac = np.array([])
+
+    def reset_buffer(self):
+        """Completely clear sample buffers when switching modes or reconnecting."""
+        self.timestamps = []
+        self.rssi_history = []
+        self.raw_subcarriers = []
+        self.selected_raw = np.array([])
+        self.resp_signal = np.array([])
+        self.cardiac_signal = np.array([])
+        self.freqs_resp = np.array([])
+        self.psd_resp = np.array([])
+        self.freqs_cardiac = np.array([])
+        self.psd_cardiac = np.array([])
+        self.current_bpm = 0.0
+        self.current_rpm = 0.0
+        self.current_sqi = 0.0
+        self.subject_state = "Connecting Hardware..."
+        self.is_calibrated = False
 
     def _design_filters(self, fs):
         nyq = 0.5 * fs
@@ -93,8 +112,8 @@ class VitalSignsProcessor:
             return {
                 "bpm": self.current_bpm,
                 "rpm": self.current_rpm,
-                "sqi": max(5.0, self.current_sqi),
-                "state": f"Buffering ({n_samples}/120 pkts)...",
+                "sqi": 0.0,
+                "state": f"Buffering ({n_samples}/60 pkts)...",
                 "selected_idx": self.selected_subcarrier_idx
             }
 
