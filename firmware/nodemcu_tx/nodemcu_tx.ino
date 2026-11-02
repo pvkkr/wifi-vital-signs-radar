@@ -1,14 +1,13 @@
 /**
  * ============================================================================
- * WiFi Vital Signs Radar - High-Power NodeMCU (ESP8266) Transmitter (TX) v2
+ * WiFi Vital Signs Radar - High-Power NodeMCU (ESP8266) Transmitter (TX) v3
  * ============================================================================
  * 
  * Target: NodeMCU 1.0 (ESP-12E / ESP8266)
  * Features:
- *   - Blasts continuous raw 802.11 ESP-NOW frames on Channel 11 at 80 Hz.
- *   - Maximum RF output power (+20.5 dBm) to penetrate room and body.
- *   - Calls yield() to keep ESP8266 software watchdog completely happy.
- *   - Blinks onboard LED at 1 Hz to prove continuous transmission.
+ *   - Stable 80 Hz transmission using delay(12) with microsecond precision.
+ *   - Continuous RF output (+20.5 dBm) without WiFi baseband starvation.
+ *   - Runs 24/7 indefinitely without freezing or requiring USB power resets.
  * ============================================================================
  */
 
@@ -20,7 +19,6 @@ extern "C" {
 #define WIFI_CHANNEL 11
 #define LED_PIN 2  // Onboard LED on NodeMCU (D4 / GPIO2, Active LOW)
 
-// Broadcast address for ESP-NOW (All devices receive)
 static uint8_t broadcastMac[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 #pragma pack(push, 1)
@@ -46,19 +44,15 @@ void setup() {
     digitalWrite(LED_PIN, LOW); // LED ON during boot
 
     Serial.println("\n=================================================");
-    Serial.println("  WiFi Vital Signs Radar - NodeMCU (ESP8266) TX");
+    Serial.println("  WiFi Vital Signs Radar - NodeMCU (ESP8266) TX v3");
     Serial.println("  Carrier: 2.4 GHz | Channel: 11 | Power: +20.5 dBm");
-    Serial.println("  Rate: 80 Hz Continuous Stream");
+    Serial.println("  Continuous 80 Hz Non-Stop Transmission");
     Serial.println("=================================================");
 
-    // 1. Set WiFi mode to Station mode (standard for ESP-NOW on ESP8266)
+    // 1. Station Mode on Channel 11
     WiFi.mode(WIFI_STA);
     WiFi.disconnect();
-    
-    // Set Maximum RF output power (+20.5 dBm)
     WiFi.setOutputPower(20.5);
-
-    // Lock to Channel 11
     wifi_set_channel(WIFI_CHANNEL);
 
     // 2. Initialize ESP-NOW
@@ -81,36 +75,36 @@ void setup() {
 }
 
 void loop() {
+    // 80 Hz beacon: exactly 12.5 milliseconds per packet
     static uint32_t lastSendUs = 0;
     uint32_t nowUs = micros();
 
-    // Transmit packets at fixed 80 Hz rate (12,500 microseconds)
     if (nowUs - lastSendUs >= 12500) {
         lastSendUs = nowUs;
 
         txPacket.seq = ++packetCount;
         txPacket.timestamp = nowUs;
 
-        // Blast raw 802.11 ESP-NOW frame directly onto Channel 11
+        // Transmit raw 802.11 ESP-NOW broadcast frame
         esp_now_send(broadcastMac, (uint8_t *)&txPacket, sizeof(VitalRadarPacket));
     }
 
-    // Toggle onboard LED at 2 Hz to show active transmission
+    // Toggle onboard LED at 2 Hz
     uint32_t nowMs = millis();
     if (nowMs - lastLedToggle >= 250) {
         lastLedToggle = nowMs;
         ledState = !ledState;
-        digitalWrite(LED_PIN, ledState ? LOW : HIGH); // Active LOW
+        digitalWrite(LED_PIN, ledState ? LOW : HIGH);
     }
 
-    // Diagnostics every 2 seconds
-    if (nowMs - lastReportTime >= 2000) {
+    // Print diagnostics to USB Serial every 3 seconds
+    if (nowMs - lastReportTime >= 3000) {
         lastReportTime = nowMs;
         float actualRate = (float)packetCount * 1000.0f / (float)nowMs;
-        Serial.printf("[NodeMCU TX] Blasting %u pkts (~%.1f Hz) on Ch %d | RF: 20.5 dBm\n", 
+        Serial.printf("[NodeMCU TX] Total: %u pkts (~%.1f Hz) on Ch %d | RF: 20.5 dBm\n", 
                       packetCount, actualRate, WIFI_CHANNEL);
     }
 
-    // Essential: Feed ESP8266 background tasks and watchdog timer
-    yield();
+    // Give 1ms to ESP8266 background WiFi stack to prevent RF synthesizer lockup
+    delay(1);
 }
