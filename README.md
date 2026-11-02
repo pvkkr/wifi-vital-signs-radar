@@ -147,11 +147,7 @@ WIFI_HEARTBEAT/
 
 ---
 
-## 📄 Academic Citation & Paper
 
-A complete research paper detailing the mathematical derivations, Fresnel Zone equations, and experimental evaluation is included in this repository:
-- **PDF Report:** [WiFi_CSI_Vital_Signs_Research_Paper.pdf](WiFi_CSI_Vital_Signs_Research_Paper.pdf)
-- **Viva Defense Cheat Sheet:** [docs/VIVA_DEFENSE_GUIDE.md](docs/VIVA_DEFENSE_GUIDE.md)
 
 ---
 
