@@ -125,7 +125,8 @@ WIFI_HEARTBEAT/
 ├── firmware/                                # Source code for Arduino / PlatformIO
 │   ├── nodemcu_tx/                          # ESP-NOW high-power beacon (+20.5 dBm)
 │   ├── esp32_tx/                            # ESP32 beacon
-│   └── esp32_rx/                            # ESP32 hardware CSI demodulator
+│   ├── esp32_rx/                            # ESP32 hardware CSI demodulator
+│   └── esp32_standalone_lcd/               # Standalone TinyML / DSP + I2C 16x2 LCD
 │
 ├── gui/                                     # Host PC Application
 │   ├── live_monitor.py                      # PyQt5 + PyQtGraph 60 FPS Bio-Radar HUD
@@ -137,6 +138,7 @@ WIFI_HEARTBEAT/
 │   ├── RESEARCH_PAPER_PRINTABLE.html        # Print-ready HTML paper
 │   ├── VIVA_DEFENSE_GUIDE.md                # Top 15 faculty viva questions & answers
 │   ├── HARDWARE_SETUP_GUIDE.md              # Physical placement & desk geometry
+│   ├── TINYML_AND_LCD_DEPLOYMENT.md         # Standalone TinyML & I2C 16x2 LCD Guide
 │   └── LINKEDIN_POST.md                     # Ready-to-copy LinkedIn post
 │
 ├── flash_nodemcu_tx.bat                     # 1-click flasher for NodeMCU
