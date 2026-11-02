@@ -134,10 +134,16 @@ static BiquadFilter respFilter;
 // ----------------- Hardware CSI Callback (PURE INTEGER - NO FPU) -----------------
 // Runs in hardware interrupt context. Must use 100% integer math for safety!
 void IRAM_ATTR wifi_csi_rx_cb(void *ctx, wifi_csi_info_t *info) {
-    if (!info || !info->buf || info->len < 32) return;
+    if (!info || !info->buf) return;
 
     int8_t rssi = info->rx_ctrl.rssi;
     if (rssi < MIN_RSSI_THRESHOLD) return;
+
+    lastRssi = rssi;
+    lastPacketMs = millis();
+    totalPacketsReceived++;
+
+    if (info->len < 16) return;
 
     int8_t *csi_raw = info->buf;
     uint32_t sumAmp = 0;
@@ -163,9 +169,6 @@ void IRAM_ATTR wifi_csi_rx_cb(void *ctx, wifi_csi_info_t *info) {
     csiRingBuf[h] = avgAmp;
     csiHead = (h + 1) % BUFFER_SIZE;
     if (csiCount < BUFFER_SIZE) csiCount++;
-    lastRssi = rssi;
-    lastPacketMs = millis();
-    totalPacketsReceived++;
 }
 
 // ----------------- On-Chip DSP Pipeline (Runs in loop) -----------------
