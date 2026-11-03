@@ -171,6 +171,8 @@ A complete student-authored research paper detailing the mathematical derivation
 - **Printable HTML:** [docs/RESEARCH_PAPER_PRINTABLE.html](docs/RESEARCH_PAPER_PRINTABLE.html)
 - **Full Markdown Paper:** [docs/RESEARCH_PAPER.md](docs/RESEARCH_PAPER.md)
 - **Faculty Viva Defense Guide:** [docs/VIVA_DEFENSE_GUIDE.md](docs/VIVA_DEFENSE_GUIDE.md)
+- **PowerPoint Presentation (PPTX):** [WiFi_Vital_Signs_Radar_Presentation.pptx](WiFi_Vital_Signs_Radar_Presentation.pptx)
+- **Interactive Browser Slides (HTML):** [docs/PRESENTATION_SLIDES.html](docs/PRESENTATION_SLIDES.html)
 
 ---
 

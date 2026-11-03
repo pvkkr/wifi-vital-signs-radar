@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contactless WiFi Vital Signs Radar - Presentation Slides</title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        font-family: 'Segoe UI', Arial, sans-serif;
+        background: #090d16;
+        color: #f1f5f9;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 20px;
+    }
+    .deck-container {
+        width: 100%;
+        max-width: 1100px;
+        aspect-ratio: 16 / 9;
+        background: #ffffff;
+        color: #0f172a;
+        border-radius: 12px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    .slide {
+        display: none;
+        width: 100%;
+        height: 100%;
+        padding: 40px 50px;
+        flex-direction: column;
+        justify-content: flex-start;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #f8fafc;
+        overflow-y: auto;
+    }
+    .slide.active { display: flex; }
+    
+    /* Slide Header */
+    .slide-header {
+        border-bottom: 3px solid #0284c7;
+        padding-bottom: 12px;
+        margin-bottom: 24px;
+    }
+    .category-tag {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 1.5px;
+        color: #0284c7;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+    .slide-title {
+        font-size: 26px;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    /* Cards & Layout */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; height: 100%; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; height: 100%; }
+    .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 14px; height: 100%; }
+    .card {
+        background: #ffffff;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+    .card.dark {
+        background: #0f172a;
+        color: #f8fafc;
+        border-color: #1e293b;
+    }
+    .card.accent {
+        background: #f0fdf4;
+        border-color: #10b981;
+    }
+    .card-title {
+        font-size: 16px;
+        font-weight: 700;
+        margin-bottom: 12px;
+    }
+    .card-title.blue { color: #0284c7; }
+    .card-title.red { color: #e11d48; }
+    .card-title.teal { color: #0d9488; }
+
+    ul { padding-left: 18px; margin-top: 8px; }
+    li { font-size: 13.5px; line-height: 1.5; margin-bottom: 8px; color: #334155; }
+    .card.dark li { color: #cbd5e1; }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+    th, td { border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left; }
+    th { background: #0f172a; color: #ffffff; font-weight: 700; }
+    tr:nth-child(even) { background: #f1f5f9; }
+
+    /* Controls Bar */
+    .controls {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        max-width: 1100px;
+        margin-top: 16px;
+    }
+    .btn {
+        background: #0284c7;
+        color: #fff;
+        border: none;
+        padding: 10px 22px;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 14px;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    .btn:hover { background: #0369a1; }
+    .counter { font-size: 14px; color: #94a3b8; font-weight: 600; }
+
+    /* Specific Title Slide */
+    .slide-title-bg {
+        background: #0f172a !important;
+        color: #f8fafc;
+        justify-content: center;
+        border-left: 8px solid #0284c7;
+    }
+    .title-h1 { font-size: 38px; font-weight: 800; color: #f8fafc; margin-bottom: 12px; }
+    .title-sub { font-size: 18px; color: #94a3b8; line-height: 1.4; margin-bottom: 30px; }
+</style>
+</head>
+<body>
+
+<div class="deck-container">
+    <!-- SLIDE 1: Title -->
+    <div class="slide slide-title-bg active" id="slide-1">
+        <div class="category-tag" style="color: #38bdf8;">RESEARCH CAPSTONE & VIVA DEFENSE 2026</div>
+        <h1 class="title-h1">Contactless WiFi Vital Signs Radar</h1>
+        <p class="title-sub">Non-Invasive Heartbeat & Respiration Monitoring Using 2.4 GHz Channel State Information (CSI) with NodeMCU & ESP32</p>
+        
+        <div class="grid-2" style="max-height: 180px;">
+            <div class="card dark" style="border-color: #0284c7;">
+                <div class="card-title blue" style="font-size: 13px;">PROJECT INVESTIGATORS</div>
+                <div style="font-size: 14px; font-weight: 700; color: #f8fafc; margin-bottom: 4px;">• P. Venkata Kishor Kumar Reddy (Lead)</div>
+                <div style="font-size: 13px; color: #cbd5e1; margin-bottom: 3px;">• K. Kamalesh (Co-Investigator - Firmware & Hardware)</div>
+                <div style="font-size: 13px; color: #cbd5e1;">• T. Perumal (Co-Investigator - Experimental Testing)</div>
+            </div>
+            <div class="card dark">
+                <div class="card-title teal" style="font-size: 13px;">ACADEMIC AFFILIATION</div>
+                <div style="font-size: 14px; font-weight: 700; color: #f8fafc;">Koneru Lakshmaiah Education Foundation</div>
+                <div style="font-size: 13px; color: #94a3b8;">(KL University), Vaddeswaram, A.P., India</div>
+                <div style="font-size: 12px; color: #38bdf8; margin-top: 6px;">Dept. of ECE & CSE | IEEE 802.11n Bio-Radar</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 2: Problem Statement -->
+    <div class="slide" id="slide-2">
+        <div class="slide-header">
+            <div class="category-tag">MOTIVATION & CLINICAL NEED</div>
+            <div class="slide-title">Why Traditional Vital Signs Monitoring Fails</div>
+        </div>
+        <div class="grid-3">
+            <div class="card">
+                <div class="card-title red">1. ECG Electrodes & Gels</div>
+                <ul>
+                    <li>Adhesive conductive gel causes contact dermatitis and skin tears over multi-hour tracking.</li>
+                    <li>Trailing lead cables physically tether the patient to hospital monitors.</li>
+                    <li>Completely impractical for routine, continuous home elderly care.</li>
+                </ul>
+            </div>
+            <div class="card">
+                <div class="card-title blue">2. PPG Finger Clips & Watches</div>
+                <ul>
+                    <li>Tight spring clamps pinch fingertips and easily detach during natural sleep turning.</li>
+                    <li>Smartwatches require tight skin adherence and frequent battery recharging.</li>
+                    <li>Causes high false alarm rates in automated sleep monitoring.</li>
+                </ul>
+            </div>
+            <div class="card accent">
+                <div class="card-title teal">3. Our Contactless Solution</div>
+                <ul>
+                    <li><b>100% Non-Invasive:</b> Zero wires, zero skin adhesives, zero wearable devices.</li>
+                    <li><b>Ubiquitous Carrier:</b> Exploits standard 2.4 GHz WiFi signals already in every room.</li>
+                    <li><b>Sub-Millimeter Sensing:</b> Detects 0.2 mm chest wall micro-pulsations via RF multipath.</li>
+                    <li><b>Cost Under $10:</b> Uses low-cost NodeMCU and ESP32 microcontrollers.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 3: RSSI vs CSI -->
+    <div class="slide" id="slide-3">
+        <div class="slide-header">
+            <div class="category-tag">RADIO PHYSICS BREAKTHROUGH</div>
+            <div class="slide-title">Why RSSI Fails & Why CSI Succeeds</div>
+        </div>
+        <table>
+            <tr>
+                <th>Feature / Metric</th>
+                <th>Standard WiFi RSSI (Coarse)</th>
+                <th>Channel State Information - CSI (Our Radar)</th>
+            </tr>
+            <tr>
+                <td><b>Data Granularity</b></td>
+                <td>1 single average integer (e.g. -75 dBm)</td>
+                <td><b>Complex matrix H(f,t) = |H|·exp(j∠H) with amplitude & phase</b></td>
+            </tr>
+            <tr>
+                <td><b>Subcarrier Diversity</b></td>
+                <td>1 aggregate scalar across whole band</td>
+                <td><b>56 distinct orthogonal OFDM subcarriers (16 tracked)</b></td>
+            </tr>
+            <tr>
+                <td><b>Spatial Sensitivity</b></td>
+                <td>Gross human motion only (&gt; 10 cm)</td>
+                <td><b>Microscopic chest wall displacements (0.2 mm to 0.5 mm)</b></td>
+            </tr>
+            <tr>
+                <td><b>Multipath Impact</b></td>
+                <td>Destructive fading ruins signal</td>
+                <td><b>Exploits multipath reflections to isolate optimal subcarrier</b></td>
+            </tr>
+            <tr>
+                <td><b>Accuracy</b></td>
+                <td>Severe drift; unusable for biometrics</td>
+                <td><b>Clinical-grade agreement (±1 BPM error, ~98.5% accuracy)</b></td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- SLIDE 4: Mathematical Modeling -->
+    <div class="slide" id="slide-4">
+        <div class="slide-header">
+            <div class="category-tag">THEORETICAL DERIVATION</div>
+            <div class="slide-title">Carrier Wavelength & Micro-Phase Modulation</div>
+        </div>
+        <div class="grid-2">
+            <div class="card">
+                <div class="card-title blue">1. Carrier Wavelength Equation</div>
+                <ul>
+                    <li><b>WiFi Channel 11 Center Frequency:</b> fc = 2.462 GHz</li>
+                    <li><b>Speed of Light:</b> c = 3.0 × 10⁸ m/s</li>
+                    <li><b>Wavelength:</b> λ = c / fc = 12.18 cm</li>
+                    <li><b>Significance:</b> Because λ is only 12.2 cm, sub-millimeter physiological motion causes a detectable angular phase rotation!</li>
+                </ul>
+            </div>
+            <div class="card">
+                <div class="card-title red">2. Round-Trip Phase Shift Formula</div>
+                <div style="background: #fff1f2; border: 1px solid #fecdd3; padding: 10px; border-radius: 6px; font-weight: 700; color: #be123c; margin-bottom: 10px; font-size: 15px;">
+                    Δϕ(t) = [ 4π · Δd(t) ] / λ
+                </div>
+                <ul>
+                    <li><b>Respiration (Breathing):</b> Δd ≈ 5–12 mm <br>↳ Δϕ_resp ≈ 35.5° to 70° (0.10–0.45 Hz / 6–27 RPM)</li>
+                    <li><b>Cardiac Ballistocardiogram (Heartbeat):</b> Δd ≈ 0.2–0.5 mm <br>↳ Δϕ_cardiac ≈ 1.2° to 3.5° (0.80–2.00 Hz / 48–120 BPM)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 5: Fresnel Zone Geometry -->
+    <div class="slide" id="slide-5">
+        <div class="slide-header">
+            <div class="category-tag">SPATIAL DEPLOYMENT</div>
+            <div class="slide-title">First Fresnel Zone (FFZ) Geometry & Placement</div>
+        </div>
+        <div class="grid-2">
+            <div class="card">
+                <div class="card-title blue">Fresnel Radius Calculation</div>
+                <div style="background: #f0f9ff; border: 1px solid #bae6fd; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 14px; font-weight: 700; color: #0369a1; margin-bottom: 10px;">
+                    r₁ = sqrt[ (λ · d₁ · d₂) / (d₁ + d₂) ]
+                </div>
+                <ul>
+                    <li>For board separation D = 1.0 m (d₁ = d₂ = 0.5 m):<br><b>r₁ ≈ 17.4 cm</b></li>
+                    <li><b>Optimal Positioning:</b> Subject sits 30 to 50 cm perpendicular to the line-of-sight connecting the two nodes.</li>
+                    <li>This places the anterior thoracic chest wall directly on the First Fresnel boundary for peak constructive/destructive amplitude fluctuation.</li>
+                </ul>
+            </div>
+            <div class="card dark">
+                <div class="card-title blue">Desk Radar Setup</div>
+                <pre style="font-family: Consolas, monospace; font-size: 11px; line-height: 1.4; color: #94a3b8;">
+[ NodeMCU TX ]                             [ ESP32 RX ]
+(Power Bank)                              (Plugged into PC)
+    [■]                                         [■]
+     |                                           |
+     | &lt;───────────── 80 cm to 1.0 m ──────────&gt; |
+     \                                           /
+      \             (  SUBJECT SEATED  )        /
+       \            ( Chest Level 1.0m )        /
+        \           ( Hands Resting    )       /
+         \                  |                 /
+          ------------------+-----------------
+                       30 to 50 cm
+                </pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 6: System Architecture -->
+    <div class="slide" id="slide-6">
+        <div class="slide-header">
+            <div class="category-tag">SYSTEM DESIGN</div>
+            <div class="slide-title">End-to-End System Architecture</div>
+        </div>
+        <div class="grid-4">
+            <div class="card">
+                <div class="card-title blue">Stage 1: TX Node</div>
+                <p><b>NodeMCU (ESP8266)</b></p>
+                <ul>
+                    <li>Continuous 80 Hz ESP-NOW beacons</li>
+                    <li>Channel 11 (2.462 GHz)</li>
+                    <li>+20.5 dBm maximum RF boost</li>
+                </ul>
+            </div>
+            <div class="card">
+                <div class="card-title blue">Stage 2: Air Channel</div>
+                <p><b>2.4 GHz Multipath</b></p>
+                <ul>
+                    <li>Chest mechanical displacement</li>
+                    <li>Respiration (5-12 mm)</li>
+                    <li>Cardiac pulse (0.2 mm)</li>
+                </ul>
+            </div>
+            <div class="card">
+                <div class="card-title blue">Stage 3: RX Node</div>
+                <p><b>ESP32 CSI Sniffer</b></p>
+                <ul>
+                    <li>Promiscuous hardware callback</li>
+                    <li>Demodulates 16 subcarriers</li>
+                    <li>Streams UART at 115200 baud</li>
+                </ul>
+            </div>
+            <div class="card accent">
+                <div class="card-title teal">Stage 4: Dashboard</div>
+                <p><b>Python DSP + GUI</b></p>
+                <ul>
+                    <li>Fan noise median cancellation</li>
+                    <li>Dual Butterworth bandpass</li>
+                    <li>Welch PSD live BPM / RPM HUD</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 7: Hardware Implementation -->
+    <div class="slide" id="slide-7">
+        <div class="slide-header">
+            <div class="category-tag">HARDWARE PROFILE</div>
+            <div class="slide-title">NodeMCU Transmitter & ESP32 Receiver Profiles</div>
+        </div>
+        <div class="grid-2">
+            <div class="card">
+                <div class="card-title blue">Transmitter (TX): NodeMCU ESP8266 ($3.50)</div>
+                <ul>
+                    <li><b>MCU:</b> Tensilica Xtensa L106 32-bit @ 80 MHz</li>
+                    <li><b>Protocol:</b> Raw 802.11 ESP-NOW Broadcast (FF:FF:FF:FF:FF:FF)</li>
+                    <li><b>Beacon Timing:</b> Exactly 80 Hz (12.5 ms per frame via micros())</li>
+                    <li><b>Power:</b> WiFi.setOutputPower(20.5) (+20.5 dBm / 112 mW) to overpower room WiFi routers</li>
+                    <li><b>Reliability:</b> Non-stop 24/7 transmission with software watchdog guard</li>
+                </ul>
+            </div>
+            <div class="card">
+                <div class="card-title teal">Receiver (RX): ESP32 Dev Module ($4.50)</div>
+                <ul>
+                    <li><b>MCU:</b> Dual-core Xtensa 32-bit LX6 @ 240 MHz</li>
+                    <li><b>Sniffer Mode:</b> Promiscuous mode locked strictly to Channel 11</li>
+                    <li><b>Hardware Callback:</b> esp_wifi_set_csi_rx_cb() captures LLTF and HT-LTF preambles</li>
+                    <li><b>Noise Gating:</b> Drops packets with RSSI &lt; -95 dBm to filter corridor noise</li>
+                    <li><b>Total System Hardware Cost: Under $10!</b></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 8: DSP Pipeline -->
+    <div class="slide" id="slide-8">
+        <div class="slide-header">
+            <div class="category-tag">SIGNAL PROCESSING</div>
+            <div class="slide-title">7-Stage Real-Time Python DSP Pipeline</div>
+        </div>
+        <div style="font-size: 13px;">
+            <div class="card" style="margin-bottom: 8px; padding: 10px 16px;"><b>1. Dynamic fs Estimator:</b> Calculates true packet arrival delta (Δt) in real time (nominally 80.0 Hz) to tune filter coefficients.</div>
+            <div class="card" style="margin-bottom: 8px; padding: 10px 16px;"><b>2. Ceiling Fan Noise Cancellation:</b> Multi-subcarrier common-mode median subtraction eliminates 15 Hz room-wide fan blade flicker.</div>
+            <div class="card" style="margin-bottom: 8px; padding: 10px 16px;"><b>3. Optimal Subcarrier Selection:</b> Variance-ranking algorithm picks the subcarrier with highest physiological SNR in the 0.05–120 range.</div>
+            <div class="card" style="margin-bottom: 8px; padding: 10px 16px;"><b>4. Respiration Bandpass Filter:</b> 2nd-order zero-phase Butterworth filter (0.10 Hz – 0.45 Hz) extracts the breathing waveform.</div>
+            <div class="card" style="margin-bottom: 8px; padding: 10px 16px;"><b>5. Respiration Fundamental Cancellation:</b> Subtracts breathing wave from cleaned CSI: cardiac_input = cleaned_stream - resp_signal.</div>
+            <div class="card" style="margin-bottom: 8px; padding: 10px 16px;"><b>6. Cardiac Pulse Filter:</b> 3rd-order Butterworth bandpass filter (0.80 Hz – 2.00 Hz) isolates systolic ballistocardiogram waves.</div>
+            <div class="card" style="margin-bottom: 8px; padding: 10px 16px;"><b>7. Welch PSD & Parabolic Interpolation:</b> nfft=1024 Hann windowing extracts dominant peak with continuous sub-BPM precision.</div>
+        </div>
+    </div>
+
+    <!-- SLIDE 9: Campus Challenges -->
+    <div class="slide" id="slide-9">
+        <div class="slide-header">
+            <div class="category-tag">PRACTICAL ENGINEERING</div>
+            <div class="slide-title">Solving Real-World Campus Interference</div>
+        </div>
+        <div class="grid-3">
+            <div class="card">
+                <div class="card-title red">1. Campus WiFi Router Jamming</div>
+                <p><b>Issue:</b> Corridor routers caused -93 dBm RSSI and massive packet loss (only 274 pkts).</p>
+                <p style="margin-top: 8px;"><b>Solution:</b> Boosted NodeMCU TX power to +20.5 dBm and enabled hardware RSSI noise gate on ESP32. Throughput surged to 80 pkts/sec!</p>
+            </div>
+            <div class="card">
+                <div class="card-title blue">2. 300 RPM Ceiling Fan Flicker</div>
+                <p><b>Issue:</b> 3-blade ceiling fan created periodic 15 Hz multipath reflections that mimicked biometrics.</p>
+                <p style="margin-top: 8px;"><b>Solution:</b> Common-mode median subtraction cancelled room-wide flutter, and cardiac filter cutoff strictly locked to 2.00 Hz.</p>
+            </div>
+            <div class="card">
+                <div class="card-title teal">3. Windows Serial Driver Locks</div>
+                <p><b>Issue:</b> Background serial monitors locked COM9; opening serial reset ESP32 to bootloader.</p>
+                <p style="margin-top: 8px;"><b>Solution:</b> Python automatically kills port locks and forces DTR=False, RTS=False, connecting cleanly every time.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 10: Live Dashboard -->
+    <div class="slide" id="slide-10">
+        <div class="slide-header">
+            <div class="category-tag">USER INTERFACE</div>
+            <div class="slide-title">PyQt5 & PyQtGraph 60 FPS Bio-Radar Dashboard</div>
+        </div>
+        <div class="grid-2">
+            <div class="card dark" style="display: flex; align-items: center; justify-content: center;">
+                <img src="../assets/gui_screenshot.png" alt="GUI Dashboard" style="max-width: 100%; max-height: 100%; border-radius: 6px;">
+            </div>
+            <div class="card">
+                <div class="card-title blue">Dashboard Features</div>
+                <ul>
+                    <li><b>Hardware Accelerated:</b> Runs at 60 FPS using PyQtGraph and PyQt5.</li>
+                    <li><b>4 Real-Time Plots:</b>
+                        <br>1. Raw Channel State Information (CSI)
+                        <br>2. Filtered Respiration Waveform (0.10–0.45 Hz)
+                        <br>3. Cardiac Ballistocardiogram (0.80–2.00 Hz)
+                        <br>4. Welch Power Spectral Density (PSD)
+                    </li>
+                    <li><b>Live HUD Cards:</b>
+                        <br>• Heart Rate (BPM) with pulsing heart animation
+                        <br>• Respiration Rate (RPM) & cycle frequency
+                        <br>• Signal Quality Index (SQI %)
+                        <br>• RF Metrics (Active Subcarrier, RSSI, Total Packets)
+                    </li>
+                    <li><b>1-Click Session CSV Recording:</b> Saves full 16-subcarrier streams for offline analysis.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 11: Experimental Validation -->
+    <div class="slide" id="slide-11">
+        <div class="slide-header">
+            <div class="category-tag">EVALUATION & RESULTS</div>
+            <div class="slide-title">Ground Truth Validation: 64 vs 65 BPM Proof</div>
+        </div>
+        <table>
+            <tr>
+                <th>Test Scenario</th>
+                <th>Physical Finger Sensor</th>
+                <th>WiFi CSI Radar</th>
+                <th>Error</th>
+                <th>Accuracy</th>
+                <th>Signal Quality (SQI)</th>
+            </tr>
+            <tr style="background: #ecfdf5; font-weight: bold;">
+                <td>Resting Normal (Video Proof)</td>
+                <td>64.0 BPM</td>
+                <td style="color: #0284c7;">65.0 BPM</td>
+                <td>1.0 BPM</td>
+                <td style="color: #059669;">98.5 %</td>
+                <td>94.2 %</td>
+            </tr>
+            <tr>
+                <td>Resting Normal (Trial 2)</td>
+                <td>71.0 BPM</td>
+                <td>72.4 BPM</td>
+                <td>1.4 BPM</td>
+                <td>98.0 %</td>
+                <td>93.5 %</td>
+            </tr>
+            <tr>
+                <td>Breath-Holding (Apnea Test)</td>
+                <td>65.0 BPM</td>
+                <td>66.0 BPM</td>
+                <td>1.0 BPM</td>
+                <td>98.5 %</td>
+                <td>92.0 % (Apnea &lt; 1.8s)</td>
+            </tr>
+            <tr>
+                <td>Post-Exercise (Elevated)</td>
+                <td>96.0 BPM</td>
+                <td>98.4 BPM</td>
+                <td>2.4 BPM</td>
+                <td>97.5 %</td>
+                <td>89.5 %</td>
+            </tr>
+            <tr>
+                <td>Empty Room (Baseline)</td>
+                <td>--</td>
+                <td>0.0 BPM</td>
+                <td>--</td>
+                <td>--</td>
+                <td>10.0 % (No Subject)</td>
+            </tr>
+        </table>
+        <div style="margin-top: 16px; font-size: 14px; font-weight: 700; color: #0284c7;">
+            🎯 Summary: Mean Absolute Error = 1.46 BPM | Overall Cardiopulmonary Accuracy = 98.1% | Clinical Agreement Achieved!
+        </div>
+    </div>
+
+    <!-- SLIDE 12: Future Roadmap -->
+    <div class="slide" id="slide-12">
+        <div class="slide-header">
+            <div class="category-tag">FUTURE EXTENSIONS</div>
+            <div class="slide-title">Roadmap: On-Chip Edge AI & Multi-User Telehealth</div>
+        </div>
+        <div class="grid-3">
+            <div class="card">
+                <div class="card-title blue">1. On-Chip Edge AI (TinyML)</div>
+                <ul>
+                    <li>Porting a 1D Convolutional Neural Network (CNN) into INT8 quantized TensorFlow Lite for Microcontrollers.</li>
+                    <li>Running DSP and neural inference directly on ESP32 Core 1 without an external PC.</li>
+                    <li>Firmware already written with I2C 16x2 LCD display output!</li>
+                </ul>
+            </div>
+            <div class="card">
+                <div class="card-title teal">2. Multi-Subject Disambiguation</div>
+                <ul>
+                    <li>Utilizing 2x2 MIMO spatial antenna diversity on newer ESP32-S3 or ESP32-C6 boards.</li>
+                    <li>Angle-of-Arrival (AoA) beamforming to separate vital signs of two patients sitting in the same room.</li>
+                </ul>
+            </div>
+            <div class="card">
+                <div class="card-title red">3. Automated Telehealth Alarms</div>
+                <ul>
+                    <li>Automated MQTT / SMS alerts when respiration flatlines for &gt; 10 seconds (Sleep Apnea alert).</li>
+                    <li>Cloud EHR integration for remote hospital ICU telemetry.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 13: Conclusion -->
+    <div class="slide slide-title-bg" id="slide-13">
+        <div class="category-tag" style="color: #38bdf8;">PROJECT SUMMARY & CONCLUSION</div>
+        <h1 class="title-h1" style="font-size: 32px;">Contactless WiFi Vital Signs Radar</h1>
+        <ul style="font-size: 15px; color: #e2e8f0; margin-bottom: 24px;">
+            <li style="margin-bottom: 10px;">✔ Successfully developed and validated a contactless cardiopulmonary radar using $10 IoT hardware (NodeMCU + ESP32).</li>
+            <li style="margin-bottom: 10px;">✔ Clinical-grade validation: <b>64 BPM finger sensor vs. 65 BPM WiFi radar</b> (±1 BPM error, ~98.5% accuracy).</li>
+            <li style="margin-bottom: 10px;">✔ Conquered real campus environment challenges (interference & ceiling fan flicker) using novel DSP median subtraction.</li>
+            <li style="margin-bottom: 10px;">✔ Complete open-source deliverable with 60 FPS PyQt5 HUD, pre-compiled flashers, and publication-ready academic paper.</li>
+        </ul>
+        <div style="background: rgba(2, 132, 199, 0.2); border: 1.5px solid #0284c7; padding: 14px 20px; border-radius: 8px;">
+            <div style="font-size: 13px; font-weight: 700; color: #38bdf8; margin-bottom: 4px;">OPEN-SOURCE CODE & DEMO:</div>
+            <div style="font-size: 14px; color: #f8fafc;">• GitHub: https://github.com/pvkkr/wifi-vital-signs-radar</div>
+            <div style="font-size: 14px; color: #f8fafc;">• LinkedIn: https://lnkd.in/drVB6jqX</div>
+            <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">Presented by: P. Venkata Kishor Kumar Reddy, K. Kamalesh, T. Perumal | KL University</div>
+        </div>
+    </div>
+</div>
+
+<div class="controls">
+    <button class="btn" onclick="prevSlide()">◀ Previous Slide</button>
+    <div class="counter" id="slide-counter">Slide 1 of 13</div>
+    <button class="btn" onclick="nextSlide()">Next Slide ▶</button>
+</div>
+
+<script>
+    let currentSlide = 1;
+    const totalSlides = 13;
+
+    function showSlide(n) {
+        document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+        const active = document.getElementById(`slide-${n}`);
+        if (active) active.classList.add('active');
+        document.getElementById('slide-counter').innerText = `Slide ${n} of ${totalSlides}`;
+        currentSlide = n;
+    }
+
+    function nextSlide() {
+        if (currentSlide < totalSlides) showSlide(currentSlide + 1);
+    }
+
+    function prevSlide() {
+        if (currentSlide > 1) showSlide(currentSlide - 1);
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+        if (e.key === 'ArrowLeft') prevSlide();
+    });
+</script>
+
+</body>
+</html>
