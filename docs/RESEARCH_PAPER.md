@@ -1,6 +1,10 @@
 # Contactless Heartbeat and Respiration Monitoring Using 2.4 GHz WiFi Channel State Information (CSI) with NodeMCU and ESP32
 
-**Author / Project Investigator:** Student Project Submission  
+**Authors & Project Team:**
+- **P. Venkata Kishor Kumar Reddy** (Lead Project Investigator)
+- **K. Kamalesh** (Co-Investigator)
+- **T. Perumal** (Co-Investigator)
+
 **Department:** Electronics and Communication Engineering / Computer Science & Engineering  
 **Institution:** Koneru Lakshmaiah Education Foundation (KL University), Vaddeswaram, Andhra Pradesh, India  
 **Academic Year:** 2026  

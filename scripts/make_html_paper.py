@@ -186,9 +186,10 @@ def convert():
             title = line[2:].strip()
             html_body.append(f"<h1>{title}</h1>")
             html_body.append("<div class='author-block'>")
-            html_body.append("<p><b>Student Research Submission</b></p>")
-            html_body.append("<p>Department of Electronics and Communication Engineering / Computer Science</p>")
-            html_body.append("<p>Koneru Lakshmaiah Education Foundation (KL University), Vaddeswaram, A.P.</p>")
+            html_body.append("<p style='font-size: 15px;'><b>P. Venkata Kishor Kumar Reddy</b> (Lead Project Investigator)</p>")
+            html_body.append("<p style='font-size: 14px;'><b>K. Kamalesh</b> &bull; <b>T. Perumal</b> (Co-Investigators)</p>")
+            html_body.append("<p>Department of Electronics and Communication Engineering / Computer Science & Engineering</p>")
+            html_body.append("<p>Koneru Lakshmaiah Education Foundation (KL University), Vaddeswaram, Andhra Pradesh, India</p>")
             html_body.append("</div>")
         elif line.startswith("## Abstract"):
             html_body.append("<div class='abstract-box'><h2>ABSTRACT</h2>")

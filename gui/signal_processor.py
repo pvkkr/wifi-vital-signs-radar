@@ -108,12 +108,12 @@ class VitalSignsProcessor:
         Returns: dict with updated vital sign metrics.
         """
         n_samples = len(self.raw_subcarriers)
-        if n_samples < 40:
+        if n_samples < 24:
             return {
                 "bpm": self.current_bpm,
                 "rpm": self.current_rpm,
                 "sqi": 0.0,
-                "state": f"Buffering ({n_samples}/60 pkts)...",
+                "state": f"Buffering ({n_samples}/24 pkts)...",
                 "selected_idx": self.selected_subcarrier_idx
             }
 
@@ -187,84 +187,109 @@ class VitalSignsProcessor:
         cleaned_stream = cleaned_stream - np.mean(cleaned_stream)
         self.selected_raw = cleaned_stream
 
-        if len(cleaned_stream) < int(fs * 2.5):
-            return {
-                "bpm": self.current_bpm,
-                "rpm": self.current_rpm,
-                "sqi": self.current_sqi,
-                "state": "Collecting signal...",
-                "selected_idx": self.selected_subcarrier_idx
-            }
+        # Safe padlen for zero-phase IIR Butterworth filtering
+        padlen = min(len(cleaned_stream) - 1, 9)
 
         # 3. Respiration Filtering & Analysis
         try:
-            resp_filt = filtfilt(b_resp, a_resp, cleaned_stream)
+            resp_filt = filtfilt(b_resp, a_resp, cleaned_stream, padlen=padlen)
             self.resp_signal = resp_filt
 
             nperseg_resp = min(len(resp_filt), int(fs * 6.0))
             if nperseg_resp >= 16:
-                f_r, p_r = welch(resp_filt, fs=fs, nperseg=nperseg_resp)
+                f_r, p_r = welch(resp_filt, fs=fs, nperseg=nperseg_resp, nfft=1024)
                 self.freqs_resp = f_r
                 self.psd_resp = p_r
 
-                resp_mask = (f_r >= 0.12) & (f_r <= 0.45)
+                resp_mask = (f_r >= 0.10) & (f_r <= 0.45)
                 if np.any(resp_mask):
-                    peak_resp_f = f_r[resp_mask][np.argmax(p_r[resp_mask])]
-                    resp_peak_power = np.max(p_r[resp_mask])
+                    sub_fr = f_r[resp_mask]
+                    sub_pr = p_r[resp_mask]
+                    peak_idx = np.argmax(sub_pr)
+                    peak_resp_f = sub_fr[peak_idx]
 
-                    if resp_peak_power < 0.008:
+                    # Parabolic interpolation for smooth respiration frequency
+                    if 0 < peak_idx < len(sub_pr) - 1:
+                        y0, y1, y2 = sub_pr[peak_idx - 1], sub_pr[peak_idx], sub_pr[peak_idx + 1]
+                        denom = (y0 - 2 * y1 + y2)
+                        if denom != 0:
+                            delta = 0.5 * (y0 - y2) / denom
+                            df = sub_fr[1] - sub_fr[0]
+                            peak_resp_f += delta * df
+
+                    resp_peak_power = float(np.max(sub_pr))
+
+                    if resp_peak_power < 0.005:
                         self.subject_state = "Holding Breath"
                         self.current_rpm = 0.0
                     else:
                         self.subject_state = "Tracking Vital Signs"
-                        measured_rpm = peak_resp_f * 60.0
+                        measured_rpm = float(np.clip(peak_resp_f * 60.0, 6.0, 30.0))
                         if self.current_rpm < 2.0:
                             self.current_rpm = measured_rpm
                         else:
-                            self.current_rpm = 0.80 * self.current_rpm + 0.20 * measured_rpm
+                            self.current_rpm = 0.75 * self.current_rpm + 0.25 * measured_rpm
         except Exception:
             pass
 
         # 4. Cardiac Filtering & Analysis
         try:
             # Cancel respiration fundamental to expose high-frequency cardiac pulse
-            cardiac_input = cleaned_stream - self.resp_signal
-            card_filt = filtfilt(b_card, a_card, cardiac_input)
+            if len(self.resp_signal) == len(cleaned_stream):
+                cardiac_input = cleaned_stream - self.resp_signal
+            else:
+                cardiac_input = cleaned_stream
+
+            card_filt = filtfilt(b_card, a_card, cardiac_input, padlen=padlen)
             self.cardiac_signal = card_filt
 
             nperseg_card = min(len(card_filt), int(fs * 8.0))
-            if nperseg_card >= 24:
-                f_c, p_c = welch(card_filt, fs=fs, nperseg=nperseg_card)
+            if nperseg_card >= 20:
+                f_c, p_c = welch(card_filt, fs=fs, nperseg=nperseg_card, nfft=1024)
                 self.freqs_cardiac = f_c
                 self.psd_cardiac = p_c
 
-                card_mask = (f_c >= 0.85) & (f_c <= 2.0)
+                card_mask = (f_c >= 0.80) & (f_c <= 2.05)
                 if np.any(card_mask):
-                    dom_f = f_c[card_mask][np.argmax(p_c[card_mask])]
-                    measured_bpm = dom_f * 60.0
+                    sub_fc = f_c[card_mask]
+                    sub_pc = p_c[card_mask]
+                    peak_idx = np.argmax(sub_pc)
+                    dom_f = sub_fc[peak_idx]
 
-                    peak_p = np.max(p_c[card_mask])
-                    total_p = np.sum(p_c[card_mask]) + 1e-6
+                    # Quadratic / Parabolic interpolation for continuous sub-BPM resolution
+                    if 0 < peak_idx < len(sub_pc) - 1:
+                        y0, y1, y2 = sub_pc[peak_idx - 1], sub_pc[peak_idx], sub_pc[peak_idx + 1]
+                        denom = (y0 - 2 * y1 + y2)
+                        if denom != 0:
+                            delta = 0.5 * (y0 - y2) / denom
+                            df = sub_fc[1] - sub_fc[0]
+                            dom_f += delta * df
+
+                    measured_bpm = float(np.clip(dom_f * 60.0, 48.0, 125.0))
+
+                    peak_p = float(np.max(sub_pc))
+                    total_p = float(np.sum(sub_pc) + 1e-6)
                     ratio = peak_p / total_p  # Spectral purity
 
-                    # Signal Quality Index (SQI) Calculation (>90% when sharp peak exists)
-                    if ratio > 0.32 and mean_recent_rssi > -88:
-                        raw_sqi = 85.0 + min(13.0, (ratio - 0.32) * 35.0)
-                    elif ratio > 0.18:
-                        raw_sqi = 65.0 + (ratio - 0.18) * 100.0
+                    # Signal Quality Index (SQI) Calculation
+                    if ratio > 0.28:
+                        raw_sqi = min(98.0, 80.0 + (ratio - 0.28) * 50.0)
+                    elif ratio > 0.15:
+                        raw_sqi = 50.0 + (ratio - 0.15) * 230.0
                     else:
-                        raw_sqi = max(15.0, ratio * 250.0)
+                        raw_sqi = max(20.0, ratio * 300.0)
 
                     # Smooth SQI towards target
-                    self.current_sqi = 0.80 * self.current_sqi + 0.20 * raw_sqi
+                    self.current_sqi = 0.70 * self.current_sqi + 0.30 * raw_sqi
 
-                    # Update BPM if signal is clear and physiological
-                    if self.current_sqi >= 30.0 and 50.0 <= measured_bpm <= 125.0:
-                        if not self.is_calibrated or self.current_bpm < 40.0:
-                            self.current_bpm = measured_bpm
-                            self.is_calibrated = True
-                        else:
-                            self.current_bpm = 0.75 * self.current_bpm + 0.25 * measured_bpm
+                    # Dynamic live update for Heart Rate (never freeze!)
+                    if not self.is_calibrated or self.current_bpm < 40.0:
+                        self.current_bpm = measured_bpm
+                        self.is_calibrated = True
+                    else:
+                        # Smooth adaptive update to track natural heart rate variability
+                        alpha = 0.25 if self.current_sqi > 50.0 else 0.15
+                        self.current_bpm = (1.0 - alpha) * self.current_bpm + alpha * measured_bpm
         except Exception:
             pass
 

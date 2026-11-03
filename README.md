@@ -153,5 +153,26 @@ WIFI_HEARTBEAT/
 
 ---
 
+## 👥 Project Team & Authors
+
+- **P. Venkata Kishor Kumar Reddy** (Lead Project Creator & Hardware/DSP Engineer)
+- **K. Kamalesh** (Co-Developer & Firmware Optimization)
+- **T. Perumal** (Co-Developer & Experimental Validation)
+
+*Department of Electronics and Communication Engineering / Computer Science & Engineering*  
+*Koneru Lakshmaiah Education Foundation (KL University), Vaddeswaram, Andhra Pradesh, India*
+
+---
+
+## 📄 Academic Citation & Research Paper
+
+A complete student-authored research paper detailing the mathematical derivations, Fresnel Zone equations, and experimental evaluation is included:
+- **PDF Report:** [WiFi_CSI_Vital_Signs_Research_Paper.pdf](WiFi_CSI_Vital_Signs_Research_Paper.pdf)
+- **Printable HTML:** [docs/RESEARCH_PAPER_PRINTABLE.html](docs/RESEARCH_PAPER_PRINTABLE.html)
+- **Full Markdown Paper:** [docs/RESEARCH_PAPER.md](docs/RESEARCH_PAPER.md)
+- **Faculty Viva Defense Guide:** [docs/VIVA_DEFENSE_GUIDE.md](docs/VIVA_DEFENSE_GUIDE.md)
+
+---
+
 ## 📜 License
 Distributed under the MIT License. See `LICENSE` for more information.

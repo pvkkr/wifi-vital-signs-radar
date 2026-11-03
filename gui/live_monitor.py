@@ -48,13 +48,31 @@ class SerialWorker(QThread):
 
     def run(self):
         try:
-            self.ser = serial.Serial(self.port, self.baud, timeout=1.0)
+            # Open COM port with explicit flow control off to prevent ESP32 boot-pin lockup
+            self.ser = serial.Serial(
+                self.port, 
+                self.baud, 
+                timeout=0.2,
+                rtscts=False,
+                dsrdtr=False
+            )
+            # Ensure DTR and RTS are deasserted so ESP32 runs in active operational mode
+            try:
+                self.ser.dtr = False
+                self.ser.rts = False
+            except Exception:
+                pass
+
+            # Flush any old lingering serial garbage
+            self.ser.reset_input_buffer()
             self.running = True
             self.status_message.emit(f"Connected to {self.port} at {self.baud} baud.")
             
             while self.running:
-                if self.ser.in_waiting:
+                lines_read = 0
+                while self.running and self.ser.in_waiting > 0 and lines_read < 25:
                     line = self.ser.readline().decode('utf-8', errors='ignore').strip()
+                    lines_read += 1
                     if line.startswith("CSI,"):
                         parts = line.split(',')
                         if len(parts) >= 6:
@@ -67,17 +85,24 @@ class SerialWorker(QThread):
                                 self.sample_received.emit(t_ms, rssi, sc_amps)
                             except ValueError:
                                 pass
-                else:
-                    time.sleep(0.005)
+                time.sleep(0.005)
         except Exception as e:
             self.status_message.emit(f"Serial Error: {e}")
             self.connection_lost.emit()
         finally:
             if self.ser and self.ser.is_open:
-                self.ser.close()
+                try:
+                    self.ser.close()
+                except Exception:
+                    pass
 
     def stop(self):
         self.running = False
+        if self.ser and self.ser.is_open:
+            try:
+                self.ser.close()
+            except Exception:
+                pass
         self.wait(1000)
 
 
@@ -384,6 +409,13 @@ class VitalSignsRadarApp(QMainWindow):
                 return
             port = selected.split(' ')[0]
             
+            # Terminate any lingering background serial monitors holding port locks
+            try:
+                subprocess.run(["taskkill", "/F", "/IM", "serial-monitor.exe"], 
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            except Exception:
+                pass
+
             # Reset buffer before starting live hardware stream
             self.processor.reset_buffer()
             self.packet_counter = 0
@@ -496,13 +528,13 @@ class VitalSignsRadarApp(QMainWindow):
         else:
             time_axis = []
 
-        if len(self.processor.selected_raw) > 0:
+        if len(self.processor.selected_raw) > 0 and len(time_axis) == len(self.processor.selected_raw):
             self.curve_raw.setData(time_axis, self.processor.selected_raw)
 
-        if len(self.processor.resp_signal) > 0:
+        if len(self.processor.resp_signal) > 0 and len(time_axis) == len(self.processor.resp_signal):
             self.curve_resp.setData(time_axis, self.processor.resp_signal)
 
-        if len(self.processor.cardiac_signal) > 0:
+        if len(self.processor.cardiac_signal) > 0 and len(time_axis) == len(self.processor.cardiac_signal):
             self.curve_cardiac.setData(time_axis, self.processor.cardiac_signal)
 
         # Frequency Spectrum
