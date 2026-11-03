@@ -377,36 +377,21 @@ def build_simple_deck():
     s6 = prs.slides.add_slide(blank_layout)
     add_top_bar(s6, "Physical Desk Placement: 40 cm Distance")
 
-    c_g1 = add_card(s6, Inches(0.8), Inches(1.5), Inches(5.6), Inches(5.4), bg=NAVY, border=BLUE)
-    g1_tf = c_g1.text_frame
-    g1_tf.margin_left = Inches(0.3)
-    g1_tf.margin_top = Inches(0.3)
-
-    p = g1_tf.paragraphs[0]
-    p.text = "RADAR DESK GEOMETRY"
-    p.font.name = "Arial"
-    p.font.size = Pt(15)
-    p.font.bold = True
-    p.font.color.rgb = BLUE
-
-    diagram = """
-    [ NodeMCU TX ]                   [ ESP32 RX ]
-    (Power Bank)                    (Into Laptop)
-        [■]                             [■]
-         |                               |
-         | <────── 80 cm to 1.0 m ─────> |
-         \\                               /
-          \\     (   SUBJECT SEATED   )  /
-           \\    (  Chest Level 1.0m  ) /
-            \\   (   30 to 50 cm away )/
-             -------------------------
-    """
-    p = g1_tf.add_paragraph()
-    p.text = diagram
-    p.font.name = "Consolas"
-    p.font.size = Pt(12)
-    p.font.color.rgb = RGBColor(148, 163, 184)
-    p.space_before = Pt(10)
+    # Left: High-resolution Geometry Diagram
+    geom_img = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "radar_desk_geometry.png")
+    if os.path.exists(geom_img):
+        s6.shapes.add_picture(geom_img, Inches(0.8), Inches(1.5), Inches(5.6), Inches(5.4))
+    else:
+        c_g1 = add_card(s6, Inches(0.8), Inches(1.5), Inches(5.6), Inches(5.4), bg=NAVY, border=BLUE)
+        g1_tf = c_g1.text_frame
+        g1_tf.margin_left = Inches(0.3)
+        g1_tf.margin_top = Inches(0.3)
+        p = g1_tf.paragraphs[0]
+        p.text = "RADAR DESK GEOMETRY"
+        p.font.name = "Arial"
+        p.font.size = Pt(15)
+        p.font.bold = True
+        p.font.color.rgb = BLUE
 
     c_g2 = add_card(s6, Inches(6.8), Inches(1.5), Inches(5.7), Inches(5.4))
     g2_tf = c_g2.text_frame
@@ -629,18 +614,18 @@ def build_simple_deck():
     p.font.size = Pt(12)
     p.font.color.rgb = RGBColor(148, 163, 184)
 
-    # Save to simple presentation filename
-    simple_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "WiFi_Vital_Signs_Radar_Presentation_Simple.pptx")
-    prs.save(simple_file)
-    print(f"[SUCCESS] Simple Presentation saved to: {simple_file}")
+    # Save to viva presentation filename
+    viva_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "WiFi_Vital_Signs_Radar_Viva.pptx")
+    prs.save(viva_file)
+    print(f"[SUCCESS] Viva Presentation saved to: {viva_file}")
 
-    # Also try to save to main file if not locked
-    main_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "WiFi_Vital_Signs_Radar_Presentation.pptx")
+    # Also try to save to simple file if not locked
+    simple_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "WiFi_Vital_Signs_Radar_Presentation_Simple.pptx")
     try:
-        prs.save(main_file)
-        print(f"[SUCCESS] Updated main presentation: {main_file}")
+        prs.save(simple_file)
+        print(f"[SUCCESS] Updated: {simple_file}")
     except PermissionError:
-        print(f"[NOTICE] Main file is currently open in PowerPoint. Saved as: {simple_file}")
+        pass
 
 if __name__ == "__main__":
     build_simple_deck()
